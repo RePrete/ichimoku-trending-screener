@@ -196,7 +196,12 @@ app.layout = dbc.Container(
                         dbc.Row([
                             dbc.Col([
                                 html.H4(id='selected-ticker'),
-                                dcc.Graph(id='selected-chart')
+                                dcc.Graph(id='selected-chart'),
+                                dcc.Interval(
+                                    id='interval-component',
+                                    interval=20*1000, # in milliseconds
+                                    n_intervals=0
+                                )
                             ])
                         ])
                     ],
@@ -240,8 +245,9 @@ def select_all_none_other(all_selected, options):
     Output("trending-chart", "figure"),
     Input("major-pairs-checklist", "value"),
     Input("other-pairs-checklist", "value"),
+    Input("interval-component", "n_intervals")
 )
-def update_chart(major, other):
+def update_chart(major, other, n_intervals):
     tickers = major + other
     if not tickers:
         return go.Figure()
