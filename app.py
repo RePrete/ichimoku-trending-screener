@@ -11,6 +11,7 @@ from flask_caching import Cache
 
 TIMEOUT = 60
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+server = app.server
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'SimpleCache',
     'CACHE_DIR': 'cache-directory'
