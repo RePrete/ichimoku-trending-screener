@@ -8,3 +8,5 @@ The color in the heatmap represent the trend of the ticker in the different time
  - green: uptrend
 
 On hover on the heatmap the bottom chart will be updated with 5 min data of the give ticker.
+
+Live demo application can be found at https://ichimoku-trending-screener.herokuapp.com/
