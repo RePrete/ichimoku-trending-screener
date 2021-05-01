@@ -216,7 +216,10 @@ app.layout = dbc.Container(
     [State("major-pairs-checklist", "options")],
 )
 def select_all_none_major(all_selected, options):
-    all_or_none = [option["value"] for option in options if all_selected]
+    if not all_selected:
+        return []
+
+    all_or_none = [option["value"] for option in options]
     return all_or_none
 
 
@@ -226,7 +229,10 @@ def select_all_none_major(all_selected, options):
     [State("other-pairs-checklist", "options")],
 )
 def select_all_none_other(all_selected, options):
-    all_or_none = [option["value"] for option in options if all_selected]
+    if not all_selected:
+        return []
+
+    all_or_none = [option["value"] for option in options]
     return all_or_none
 
 
