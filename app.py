@@ -1,20 +1,26 @@
+import configparser
+
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import yfinance as yf
 from dash import dash
 from dash.dependencies import Input, Output, State
 from flask_caching import Cache
 
+import config
+
+configparser.ConfigParser()
+
 TIMEOUT = 60
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 cache = Cache(app.server, config={
-    'CACHE_TYPE': 'SimpleCache',
-    'CACHE_DIR': 'cache-directory'
+    'CACHE_TYPE': 'RedisCache',
+    'CACHE_KEY_PREFIX': 'its_',
+    'CACHE_REDIS_URL': config.REDIS_URL,
 })
 # Major pairs
 major_pairs = [
@@ -60,6 +66,7 @@ other_pairs = [
 ]
 all_pairs = major_pairs + other_pairs
 
+
 def calculate_ichimoku(data, tf):
     if tf == '1d':
         multiplier = 24
@@ -100,9 +107,19 @@ def get_yfinance_data(ticker, period, interval):
     return yf.Ticker(ticker).history(period=period, interval=interval)
 
 
+@cache.memoize(timeout=3600)
+def get_yfinance_h_data(ticker):
+    return yf.Ticker(ticker).history(period='52h', interval='1h')
+
+
+@cache.memoize(timeout=5)
+def get_yfinance_m_data(ticker):
+    return yf.Ticker(ticker).history(period='16h', interval='5m')
+
+
 @cache.memoize(timeout=TIMEOUT)
 def get_data(ticker):
-    data = get_yfinance_data(ticker, '52d', '1h')
+    data = get_yfinance_h_data(ticker)
 
     data1d = calculate_ichimoku(data, '1d')
     data4h = calculate_ichimoku(data, '4h')
@@ -185,6 +202,17 @@ app.layout = dbc.Container(
     [
         dbc.Row(
             [
+                html.Div(
+                    id='hidden-div',
+                    style={'display': 'none'},
+                    children=[
+                        dcc.Interval(
+                            id='data-interval-component',
+                            interval=15 * 60 * 1000,  # in milliseconds
+                            n_intervals=0
+                        )
+                    ]
+                ),
                 dbc.Col(controls, md=2),
                 dbc.Col(
                     [
@@ -200,7 +228,7 @@ app.layout = dbc.Container(
                                 dcc.Graph(id='selected-chart'),
                                 dcc.Interval(
                                     id='interval-component',
-                                    interval=20*1000, # in milliseconds
+                                    interval=20 * 1000,  # in milliseconds
                                     n_intervals=0
                                 )
                             ])
@@ -253,20 +281,21 @@ def update_chart(major, other, n_intervals):
     if not tickers:
         return go.Figure()
 
-    df = update_callback(tickers)
+    # df = update_callback(tickers)
+    data = df.iloc[df.index.isin(tickers)]
 
     # Replace ticker with relative label
-    df.reset_index(inplace=True)
-    for i, row in df.iterrows():
-        df.at[i, 'Ticker'] = pair_value_to_label(row['Ticker'])
-    df.set_index('Ticker', inplace=True)
+    data.reset_index(inplace=True)
+    for i, row in data.iterrows():
+        data.at[i, 'Ticker'] = pair_value_to_label(row['Ticker'])
+    data.set_index('Ticker', inplace=True)
 
     fig = go.Figure()
     columns = ['Daily', '4h', '1h']
     fig.add_trace(go.Heatmap(
-        x=df.index.values,
+        x=data.index.values,
         y=columns,
-        z=df[columns].transpose(),
+        z=data[columns].transpose(),
         zmin=-1, zmax=1,
         colorscale=['#c62828', '#fffde7', '#558b2f'],
         colorbar=dict(
@@ -293,7 +322,7 @@ def draw_charts(clicked):
     else:
         ticker = pair_label_to_value(clicked['points'][0]['x'])
 
-    df = get_yfinance_data(ticker, '16h', '5m')
+    df = get_yfinance_m_data(ticker)
     figure = go.Figure(
         data=go.Candlestick(
             x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close']
@@ -312,5 +341,14 @@ def pair_label_to_value(ticker):
     return next(i['value'] for i in all_pairs if i['label'] == ticker)
 
 
+@app.callback(
+    Output('hidden-div', 'children'),
+    Input('hidden-div', 'children')
+)
+def update_all_pairs(input):
+    df = update_callback(i['value'] for i in all_pairs)
+
+
+df = update_callback(i['value'] for i in all_pairs)
 if __name__ == '__main__':
     app.run_server(debug=True)
