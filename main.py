@@ -217,7 +217,7 @@ app.layout = dbc.Container(
 )
 def select_all_none_major(all_selected, options):
     if not all_selected:
-        return []
+        return [major_pairs[0]['value']]
 
     all_or_none = [option["value"] for option in options]
     return all_or_none
@@ -254,13 +254,31 @@ def update_chart(major, other):
         df.at[i, 'Ticker'] = pair_value_to_label(row['Ticker'])
     df.set_index('Ticker', inplace=True)
 
-    return px.imshow(df[['Daily', '4h', '1h']].transpose(), color_continuous_scale='RdYlGn', zmin=-1, zmax=1)
+    fig = go.Figure()
+    columns = ['Daily', '4h', '1h']
+    fig.add_trace(go.Heatmap(
+        x=df.index.values,
+        y=columns,
+        z=df[columns].transpose(),
+        zmin=-1, zmax=1,
+        colorscale='RdYlGn',
+        colorbar=dict(
+            title="Trend analysis",
+            titleside="top",
+            tickmode="array",
+            tickvals=[-1, 0, 1],
+            ticktext=["Downtrend", "Ranging", "Uptrend"],
+            ticks="outside"
+        )
+    ))
+    return fig
+    # return px.imshow(df[['Daily', '4h', '1h']].transpose(), color_continuous_scale='RdYlGn', zmin=-1, zmax=1)
 
 
 @app.callback(
     Output("selected-chart", "figure"),
     Output("selected-ticker", "children"),
-    Input("trending-chart", "clickData"),
+    Input("trending-chart", "hoverData"),
 )
 def draw_charts(clicked):
     if clicked is None:
