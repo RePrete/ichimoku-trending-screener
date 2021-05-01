@@ -261,7 +261,7 @@ def update_chart(major, other):
         y=columns,
         z=df[columns].transpose(),
         zmin=-1, zmax=1,
-        colorscale='RdYlGn',
+        colorscale=['#c62828', '#fffde7', '#558b2f'],
         colorbar=dict(
             title="Trend analysis",
             titleside="top",
