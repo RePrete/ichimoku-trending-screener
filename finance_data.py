@@ -9,7 +9,7 @@ def get_yfinance_h_data(ticker):
 
 
 def get_yfinance_m_data(ticker):
-    return yf.Ticker(ticker).history(period='16h', interval='5m')
+    return yf.Ticker(ticker).history(period='12h', interval='5m')
 
 
 def calculate_ichimoku(data, tf):
