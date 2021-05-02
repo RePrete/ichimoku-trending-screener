@@ -1,5 +1,6 @@
 ### Ichimoku tranding screener
-Basic python application build with plotly and dash
+Basic python application build with plotly and dash.
+All the price informations are stored in redis caching the method call (flask-cache)
 #### Usage
 The application will create an heatmap starting from the selected currency pairs.
 The color in the heatmap represent the trend of the ticker in the different timeframes:

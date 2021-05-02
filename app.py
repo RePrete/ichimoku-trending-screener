@@ -14,7 +14,6 @@ import config
 
 configparser.ConfigParser()
 
-TIMEOUT = 60
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 cache = Cache(app.server, config={
@@ -102,22 +101,22 @@ def calculate_ichimoku(data, tf):
     return 0
 
 
-@cache.memoize(timeout=TIMEOUT)
+@cache.memoize(timeout=config.BASE_TTL)
 def get_yfinance_data(ticker, period, interval):
     return yf.Ticker(ticker).history(period=period, interval=interval)
 
 
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=config.HOURLY_DATA_TTL)
 def get_yfinance_h_data(ticker):
     return yf.Ticker(ticker).history(period='52h', interval='1h')
 
 
-@cache.memoize(timeout=5)
+@cache.memoize(timeout=config.MINUTE_DATA_TTL)
 def get_yfinance_m_data(ticker):
     return yf.Ticker(ticker).history(period='16h', interval='5m')
 
 
-@cache.memoize(timeout=TIMEOUT)
+@cache.memoize(timeout=config.BASE_TTL)
 def get_data(ticker):
     data = get_yfinance_h_data(ticker)
 
@@ -282,7 +281,7 @@ def update_chart(major, other, n_intervals):
         return go.Figure()
 
     # df = update_callback(tickers)
-    data = df.iloc[df.index.isin(tickers)]
+    data = hourly_data_frame.iloc[hourly_data_frame.index.isin(tickers)]
 
     # Replace ticker with relative label
     data.reset_index(inplace=True)
@@ -308,19 +307,21 @@ def update_chart(major, other, n_intervals):
         )
     ))
     return fig
-    # return px.imshow(df[['Daily', '4h', '1h']].transpose(), color_continuous_scale='RdYlGn', zmin=-1, zmax=1)
 
 
 @app.callback(
     Output("selected-chart", "figure"),
     Output("selected-ticker", "children"),
     Input("trending-chart", "hoverData"),
+    Input("trending-chart", "clickData"),
 )
-def draw_charts(clicked):
-    if clicked is None:
-        ticker = major_pairs[0]['value']
-    else:
+def draw_charts(hover, clicked):
+    if hover is not None:
+        ticker = pair_label_to_value(hover['points'][0]['x'])
+    elif clicked is not None:
         ticker = pair_label_to_value(clicked['points'][0]['x'])
+    else:
+        ticker = major_pairs[0]['value']
 
     df = get_yfinance_m_data(ticker)
     figure = go.Figure(
@@ -346,9 +347,9 @@ def pair_label_to_value(ticker):
     Input('hidden-div', 'children')
 )
 def update_all_pairs(input):
-    df = update_callback(i['value'] for i in all_pairs)
+    hourly_data_frame = update_callback(i['value'] for i in all_pairs)
 
 
-df = update_callback(i['value'] for i in all_pairs)
+hourly_data_frame = update_callback(i['value'] for i in all_pairs)
 if __name__ == '__main__':
     app.run_server(debug=True)
