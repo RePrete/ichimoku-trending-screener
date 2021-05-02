@@ -4,23 +4,28 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
-import yfinance as yf
 from dash import dash
 from dash.dependencies import Input, Output, State
 from flask_caching import Cache
 
 import config
+import currency_strength
+import finance_data
+from finance_data import get_data, get_yfinance_m_data
 
 configparser.ConfigParser()
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-server = app.server
+
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'RedisCache',
     'CACHE_KEY_PREFIX': 'its_',
     'CACHE_REDIS_URL': config.REDIS_URL,
 })
+
+server = app.server
 # Major pairs
 major_pairs = [
     {'label': 'EUR/USD', 'value': 'EURUSD=X'},
@@ -66,94 +71,41 @@ other_pairs = [
 all_pairs = major_pairs + other_pairs
 
 
-def calculate_ichimoku(data, tf):
-    if tf == '1d':
-        multiplier = 24
-    elif tf == '4h':
-        multiplier = 4
-    else:
-        multiplier = 1
-
-    if data.empty:
-        return False
-
-    cl_coef = 9 * multiplier
-    bl_coef = 26 * multiplier
-    ssb_coef = 52 * multiplier
-
-    c_cl = (data.tail(cl_coef)['High'].max() + data.tail(cl_coef)['Low'].min()) / 2
-    c_bl = (data.tail(bl_coef)['High'].max() + data.tail(bl_coef)['Low'].min()) / 2
-    c_ssa = (c_cl + c_bl) / 2
-    c_ssb = (data.tail(ssb_coef)['High'].max() + data.tail(ssb_coef)['Low'].min()) / 2
-
-    p_cl = (data.tail(cl_coef + 1).head(cl_coef)['High'].max() + data.tail(cl_coef + 1).head(cl_coef)['Low'].min()) / 2
-    p_bl = (data.tail(bl_coef + 1).head(bl_coef)['High'].max() + data.tail(bl_coef + 1).head(bl_coef)['Low'].min()) / 2
-    p_ssa = (p_cl + p_bl) / 2
-    p_ssb = (data.tail(ssb_coef + 1).head(ssb_coef)['High'].max() + data.tail(ssb_coef + 1).head(ssb_coef)[
-        'Low'].min()) / 2
-
-    if c_bl > p_bl and c_bl > c_ssb:
-        if c_ssb > p_ssb or (c_ssb == p_ssb and c_ssa > p_ssa):
-            return 1
-    elif c_bl < p_bl and c_bl < c_ssb:
-        if c_ssb < p_ssb or (c_ssb == p_ssb and c_ssa < p_ssa):
-            return -1
-    return 0
-
-
 @cache.memoize(timeout=config.BASE_TTL)
-def get_yfinance_data(ticker, period, interval):
-    return yf.Ticker(ticker).history(period=period, interval=interval)
-
-
-@cache.memoize(timeout=config.HOURLY_DATA_TTL)
-def get_yfinance_h_data(ticker):
-    return yf.Ticker(ticker).history(period='52h', interval='1h')
+def get_data(ticker):
+    return finance_data.get_data(ticker)
 
 
 @cache.memoize(timeout=config.MINUTE_DATA_TTL)
 def get_yfinance_m_data(ticker):
-    return yf.Ticker(ticker).history(period='16h', interval='5m')
+    return finance_data.get_yfinance_m_data(ticker)
 
 
 @cache.memoize(timeout=config.BASE_TTL)
-def get_data(ticker):
-    data = get_yfinance_h_data(ticker)
-
-    data1d = calculate_ichimoku(data, '1d')
-    data4h = calculate_ichimoku(data, '4h')
-    data1h = calculate_ichimoku(data, '1h')
-    if data1h != 0 and (data1d == data1h or data4h == data1h):
-        trending = 1
-    else:
-        trending = 0
-
-    return {
-        'Ticker': [ticker],
-        'Daily': [data1d],
-        '4h': [data4h],
-        '1h': [data1h],
-        'Data': [data],
-        'Trending': [trending]
-    }
+def get_yfinance_data(ticker, period, interval):
+    return finance_data.get_yfinance_data(ticker, period, interval)
 
 
-def filter_trending(df):
-    return df[df['Trending'] == 1]
+@cache.memoize(timeout=config.HOURLY_DATA_TTL)
+def get_yfinance_h_data(ticker):
+    return finance_data.get_yfinance_h_data(ticker)
 
 
-def update_tickers(tickers_list, only_trending):
+@cache.memoize(timeout=config.BASE_TTL)
+def get_currency_strength():
+    return currency_strength.calulate()
+
+
+def update_tickers(tickers_list):
     result = pd.concat([
         pd.DataFrame(get_data(ticker)) for ticker in tickers_list],
         ignore_index=True
     ).set_index('Ticker')
-    if only_trending:
-        return filter_trending(result)
     return result
 
 
 def update_callback(tickers_list):
-    return pd.DataFrame(update_tickers(tickers_list, False))
+    return pd.DataFrame(update_tickers(tickers_list))
 
 
 CONTROLS_STYLE = {
@@ -230,6 +182,15 @@ app.layout = dbc.Container(
                                     interval=20 * 1000,  # in milliseconds
                                     n_intervals=0
                                 )
+                            ]),
+                            dbc.Col([
+                                html.H4("Currency strength"),
+                                dcc.Graph(id='currency-strength-chart'),
+                                dcc.Interval(
+                                    id='currency-strength-interval-component',
+                                    interval=5 * 1000,  # in milliseconds
+                                    n_intervals=0
+                                )
                             ])
                         ])
                     ],
@@ -267,6 +228,15 @@ def select_all_none_other(all_selected, options):
 
     all_or_none = [option["value"] for option in options]
     return all_or_none
+
+
+@app.callback(
+    Output("currency-strength-chart", "figure"),
+    Input("currency-strength-interval-component", "n_intervals")
+)
+def update_currency_strength_chart(n_interval):
+    df = get_currency_strength()
+    return go.Figure(px.bar(df.transpose().sort_values(by=[0], ascending=False)))
 
 
 @app.callback(
