@@ -159,7 +159,7 @@ app.layout = dbc.Container(
                     children=[
                         dcc.Interval(
                             id='data-interval-component',
-                            interval=15 * 60 * 1000,  # in milliseconds
+                            interval=15 * 1000,  # in milliseconds
                             n_intervals=0
                         )
                     ]
@@ -179,7 +179,7 @@ app.layout = dbc.Container(
                                 dcc.Graph(id='selected-chart'),
                                 dcc.Interval(
                                     id='interval-component',
-                                    interval=20 * 1000,  # in milliseconds
+                                    interval=5 * 1000,  # in milliseconds
                                     n_intervals=0
                                 )
                             ]),
