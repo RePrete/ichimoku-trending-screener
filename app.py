@@ -272,6 +272,8 @@ def update_chart(major, other, n_intervals):
         y=columns,
         z=data[columns].transpose(),
         zmin=-1, zmax=1,
+        xgap=2,
+        ygap=2,
         colorscale=['#c62828', '#fffde7', '#558b2f'],
         colorbar=dict(
             title="Trend analysis",
