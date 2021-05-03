@@ -174,24 +174,30 @@ app.layout = dbc.Container(
                             ])
                         ]),
                         dbc.Row([
-                            dbc.Col([
-                                html.H4(id='selected-ticker'),
-                                dcc.Graph(id='selected-chart'),
-                                dcc.Interval(
-                                    id='interval-component',
-                                    interval=5 * 1000,  # in milliseconds
-                                    n_intervals=0
-                                )
-                            ]),
-                            dbc.Col([
-                                html.H4("Currency strength"),
-                                dcc.Graph(id='currency-strength-chart'),
-                                dcc.Interval(
-                                    id='currency-strength-interval-component',
-                                    interval=30 * 1000,  # in milliseconds
-                                    n_intervals=0
-                                )
-                            ])
+                            dbc.Col(
+                                [
+                                    html.H4(id='selected-ticker'),
+                                    dcc.Graph(id='selected-chart'),
+                                    dcc.Interval(
+                                        id='interval-component',
+                                        interval=5 * 1000,  # in milliseconds
+                                        n_intervals=0
+                                    )
+                                ],
+                                md=6
+                            ),
+                            dbc.Col(
+                                [
+                                    html.H4("Currency strength"),
+                                    dcc.Graph(id='currency-strength-chart'),
+                                    dcc.Interval(
+                                        id='currency-strength-interval-component',
+                                        interval=30 * 1000,  # in milliseconds
+                                        n_intervals=0
+                                    )
+                                ],
+                                md=6
+                            )
                         ])
                     ],
                     md=10
