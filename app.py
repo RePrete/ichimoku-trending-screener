@@ -188,7 +188,7 @@ app.layout = dbc.Container(
                             ),
                             dbc.Col(
                                 [
-                                    html.H4("Currency strength"),
+                                    html.H4("Last 15 m currency strength"),
                                     dcc.Graph(id='currency-strength-chart'),
                                     dcc.Interval(
                                         id='currency-strength-interval-component',
@@ -266,7 +266,7 @@ def update_chart(major, other, n_intervals):
     data.set_index('Ticker', inplace=True)
 
     fig = go.Figure()
-    columns = ['Daily', '4h', '1h']
+    columns = ['Daily', '4h', '1h', '30m']
     fig.add_trace(go.Heatmap(
         x=data.index.values,
         y=columns,

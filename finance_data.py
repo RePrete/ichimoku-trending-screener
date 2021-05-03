@@ -30,20 +30,22 @@ def calculate_ichimoku(data, tf):
     p_ssb = (data.tail(ssb_coef + 24).head(ssb_coef)['High'].max() + data.tail(ssb_coef + 24).head(ssb_coef)['Low'].min()) / 2
 
     if c_bl > p_bl and c_bl > c_ssb:
-        if data.tail(1)['Close'][0] > c_bl and (c_ssb > p_ssb or (c_ssb == p_ssb and c_ssa > p_ssa)):
+        if data.tail(1)['Close'][0] > c_bl and c_bl > c_ssb and (c_ssb > p_ssb or (c_ssb == p_ssb and c_ssa > p_ssa)):
             return 1
     elif c_bl < p_bl and c_bl < c_ssb:
-        if data.tail(1)['Close'][0] < c_bl and (c_ssb < p_ssb or (c_ssb == p_ssb and c_ssa < p_ssa)):
+        if data.tail(1)['Close'][0] < c_bl and c_bl < c_ssb and (c_ssb < p_ssb or (c_ssb == p_ssb and c_ssa < p_ssa)):
             return -1
     return 0
 
 
 def get_data(ticker):
     data = get_yfinance_data(ticker, '52d', '1h')
+    minute_data = get_yfinance_data(ticker, '2d', '30m')
 
     data1d = calculate_ichimoku(data, '1d')
     data4h = calculate_ichimoku(data, '4h')
     data1h = calculate_ichimoku(data, '1h')
+    data30m = calculate_ichimoku(minute_data, '1h')
     if data1h != 0 and (data1d == data1h or data4h == data1h):
         trending = 1
     else:
@@ -54,6 +56,7 @@ def get_data(ticker):
         'Daily': [data1d],
         '4h': [data4h],
         '1h': [data1h],
+        '30m': [data30m],
         'Data': [data],
         'Trending': [trending]
     }
