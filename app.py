@@ -13,7 +13,7 @@ from flask_caching import Cache
 import config
 import currency_strength
 import finance_data
-from finance_data import get_data, get_yfinance_m_data
+from finance_data import get_data
 
 configparser.ConfigParser()
 
@@ -76,19 +76,19 @@ def get_data(ticker):
     return finance_data.get_data(ticker)
 
 
-@cache.memoize(timeout=config.MINUTE_DATA_TTL)
-def get_yfinance_m_data(ticker):
-    return finance_data.get_yfinance_m_data(ticker)
-
-
 @cache.memoize(timeout=config.BASE_TTL)
 def get_yfinance_data(ticker, period, interval):
     return finance_data.get_yfinance_data(ticker, period, interval)
 
 
+@cache.memoize(timeout=config.MINUTE_DATA_TTL)
+def get_yfinance_m_data(ticker):
+    return finance_data.get_yfinance_data(ticker, '10h', '5m')
+
+
 @cache.memoize(timeout=config.HOURLY_DATA_TTL)
 def get_yfinance_h_data(ticker):
-    return finance_data.get_yfinance_h_data(ticker)
+    return finance_data.get_yfinance_data(ticker, '52d', '1h')
 
 
 @cache.memoize(timeout=config.BASE_TTL)
@@ -188,7 +188,7 @@ app.layout = dbc.Container(
                                 dcc.Graph(id='currency-strength-chart'),
                                 dcc.Interval(
                                     id='currency-strength-interval-component',
-                                    interval=5 * 1000,  # in milliseconds
+                                    interval=30 * 1000,  # in milliseconds
                                     n_intervals=0
                                 )
                             ])

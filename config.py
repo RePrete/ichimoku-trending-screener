@@ -1,4 +1,4 @@
 REDIS_URL = 'redis://localhost:6379'
-BASE_TTL = 60
+BASE_TTL = 15
 HOURLY_DATA_TTL = 60
 MINUTE_DATA_TTL = 15

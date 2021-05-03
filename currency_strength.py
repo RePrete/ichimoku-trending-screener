@@ -41,7 +41,7 @@ def get_val_d(v1, v2, v3, v4):
 
 # v1 is the current price, v2 is the price of the starting point
 def calulate():
-    df = yf.download(' '.join(pairs), period='15', interval='5m', group_by='ticker').tail(2)
+    df = yf.download(' '.join(pairs), period='2h', interval='15m', group_by='ticker').dropna().tail(2)
     if shared._ERRORS != {}:
         shared._ERRORS = {}
         return pd.DataFrame({
@@ -54,7 +54,6 @@ def calulate():
                 'cad': [0],
                 'nzd': [0],
             })
-
     eurusd = get_val(df['EURUSD=X']['Close'][1], df['EURUSD=X']['Close'][0])
     usdjpy = get_val(df['USDJPY=X']['Close'][1], df['USDJPY=X']['Close'][0])
     usdchf = get_val(df['USDCHF=X']['Close'][1], df['USDCHF=X']['Close'][0])

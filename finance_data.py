@@ -4,14 +4,6 @@ def get_yfinance_data(ticker, period, interval):
     return yf.Ticker(ticker).history(period=period, interval=interval)
 
 
-def get_yfinance_h_data(ticker):
-    return yf.Ticker(ticker).history(period='52h', interval='1h')
-
-
-def get_yfinance_m_data(ticker):
-    return yf.Ticker(ticker).history(period='12h', interval='5m')
-
-
 def calculate_ichimoku(data, tf):
     if tf == '1d':
         multiplier = 24
@@ -48,7 +40,7 @@ def calculate_ichimoku(data, tf):
 
 
 def get_data(ticker):
-    data = get_yfinance_h_data(ticker)
+    data = get_yfinance_data(ticker, '52d', '1h')
 
     data1d = calculate_ichimoku(data, '1d')
     data4h = calculate_ichimoku(data, '4h')
