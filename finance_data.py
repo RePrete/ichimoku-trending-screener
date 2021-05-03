@@ -25,10 +25,9 @@ def calculate_ichimoku(data, tf):
     c_ssb = (data.tail(ssb_coef)['High'].max() + data.tail(ssb_coef)['Low'].min()) / 2
 
     p_cl = (data.tail(cl_coef + 1).head(cl_coef)['High'].max() + data.tail(cl_coef + 1).head(cl_coef)['Low'].min()) / 2
-    p_bl = (data.tail(bl_coef + 1).head(bl_coef)['High'].max() + data.tail(bl_coef + 1).head(bl_coef)['Low'].min()) / 2
+    p_bl = (data.tail(bl_coef + 4).head(bl_coef)['High'].max() + data.tail(bl_coef + 4).head(bl_coef)['Low'].min()) / 2
     p_ssa = (p_cl + p_bl) / 2
-    p_ssb = (data.tail(ssb_coef + 1).head(ssb_coef)['High'].max() + data.tail(ssb_coef + 1).head(ssb_coef)[
-        'Low'].min()) / 2
+    p_ssb = (data.tail(ssb_coef + 24).head(ssb_coef)['High'].max() + data.tail(ssb_coef + 24).head(ssb_coef)['Low'].min()) / 2
 
     if c_bl > p_bl and c_bl > c_ssb:
         if c_ssb > p_ssb or (c_ssb == p_ssb and c_ssa > p_ssa):
