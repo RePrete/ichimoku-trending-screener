@@ -1,51 +1,59 @@
 import yfinance as yf
 
+CONVERSION_LINE_CANDLES = 9
+BASE_LINE_CANDLES = 26
+SSB_LINE_CANDLES = 52
+
+
 def get_yfinance_data(ticker, period, interval):
     return yf.Ticker(ticker).history(period=period, interval=interval)
 
 
-def calculate_ichimoku(data, tf):
-    if tf == '1d':
-        multiplier = 24
-    elif tf == '4h':
-        multiplier = 4
-    else:
-        multiplier = 1
-
+def calculate_ichimoku(data, factor):
     if data.empty:
-        return False
+        return 0
 
-    cl_coef = 9 * multiplier
-    bl_coef = 26 * multiplier
-    ssb_coef = 52 * multiplier
+    cl_coef = int(CONVERSION_LINE_CANDLES * factor)
+    bl_coef = int(BASE_LINE_CANDLES * factor)
+    ssb_coef = int(SSB_LINE_CANDLES * factor)
 
     c_cl = (data.tail(cl_coef)['High'].max() + data.tail(cl_coef)['Low'].min()) / 2
     c_bl = (data.tail(bl_coef)['High'].max() + data.tail(bl_coef)['Low'].min()) / 2
     c_ssa = (c_cl + c_bl) / 2
     c_ssb = (data.tail(ssb_coef)['High'].max() + data.tail(ssb_coef)['Low'].min()) / 2
 
-    p_cl = (data.tail(cl_coef + 1).head(cl_coef)['High'].max() + data.tail(cl_coef + 1).head(cl_coef)['Low'].min()) / 2
-    p_bl = (data.tail(bl_coef + 4).head(bl_coef)['High'].max() + data.tail(bl_coef + 4).head(bl_coef)['Low'].min()) / 2
+    p_cl = (data.tail(cl_coef + int(factor)).head(cl_coef)['High'].max() +
+            data.tail(cl_coef + int(factor)).head(cl_coef)['Low'].min()) / 2
+    p_bl = (data.tail(bl_coef + int(factor)).head(bl_coef)['High'].max() +
+            data.tail(bl_coef + int(factor)).head(bl_coef)['Low'].min()) / 2
     p_ssa = (p_cl + p_bl) / 2
-    p_ssb = (data.tail(ssb_coef + 24).head(ssb_coef)['High'].max() + data.tail(ssb_coef + 24).head(ssb_coef)['Low'].min()) / 2
+    p_ssb = (data.tail(ssb_coef + int(factor)).head(ssb_coef)['High'].max() +
+             data.tail(ssb_coef + int(factor)).head(ssb_coef)['Low'].min()) / 2
 
+    # Base line up and above ssb
     if c_bl > p_bl and c_bl > c_ssb:
-        if data.tail(1)['Close'][0] > c_bl and c_bl > c_ssb and (c_ssb > p_ssb or (c_ssb == p_ssb and c_ssa > p_ssa)):
-            return 1
+        # Price above base line
+        if data.tail(1)['Close'][0] > c_bl and c_bl > c_ssb:
+            if c_ssb > p_ssb:
+                return 1
+            elif c_ssb == p_ssb and c_ssa > p_ssa:
+                return 0.5
     elif c_bl < p_bl and c_bl < c_ssb:
-        if data.tail(1)['Close'][0] < c_bl and c_bl < c_ssb and (c_ssb < p_ssb or (c_ssb == p_ssb and c_ssa < p_ssa)):
-            return -1
+        if data.tail(1)['Close'][0] < c_bl and c_bl < c_ssb:
+            if c_ssb < p_ssb:
+                return -1
+            elif c_ssb == p_ssb and c_ssa < p_ssa:
+                return -0.5
     return 0
 
 
 def get_data(ticker):
     data = get_yfinance_data(ticker, '52d', '1h')
-    minute_data = get_yfinance_data(ticker, '2d', '30m')
 
-    data1d = calculate_ichimoku(data, '1d')
-    data4h = calculate_ichimoku(data, '4h')
-    data1h = calculate_ichimoku(data, '1h')
-    data30m = calculate_ichimoku(minute_data, '1h')
+    data1d = calculate_ichimoku(data, 24)
+    data4h = calculate_ichimoku(data, 4)
+    data1h = calculate_ichimoku(data, 1)
+    data30m = calculate_ichimoku(data, 0.5)
     if data1h != 0 and (data1d == data1h or data4h == data1h):
         trending = 1
     else:
