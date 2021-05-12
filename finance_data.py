@@ -31,19 +31,26 @@ def calculate_ichimoku(data, factor):
              data.tail(ssb_coef + int(factor)).head(ssb_coef)['Low'].min()) / 2
 
     # Base line up and above ssb
+    # if c_bl > p_bl and c_bl > c_ssb:
+    #     # Price above base line
+    #     if data.tail(1)['Close'][0] > c_bl and c_bl > c_ssb:
+    #         if c_ssb > p_ssb:
+    #             return 1
+    #         elif c_ssb == p_ssb and c_ssa > p_ssa:
+    #             return 0.5
+    # elif c_bl < p_bl and c_bl < c_ssb:
+    #     if data.tail(1)['Close'][0] < c_bl and c_bl < c_ssb:
+    #         if c_ssb < p_ssb:
+    #             return -1
+    #         elif c_ssb == p_ssb and c_ssa < p_ssa:
+    #             return -0.5
+
     if c_bl > p_bl and c_bl > c_ssb:
-        # Price above base line
-        if data.tail(1)['Close'][0] > c_bl and c_bl > c_ssb:
-            if c_ssb > p_ssb:
-                return 1
-            elif c_ssb == p_ssb and c_ssa > p_ssa:
-                return 0.5
+        if data.tail(1)['Close'][0] > c_bl and c_bl > c_ssb and c_ssb > p_ssb:
+            return 1
     elif c_bl < p_bl and c_bl < c_ssb:
-        if data.tail(1)['Close'][0] < c_bl and c_bl < c_ssb:
-            if c_ssb < p_ssb:
-                return -1
-            elif c_ssb == p_ssb and c_ssa < p_ssa:
-                return -0.5
+        if data.tail(1)['Close'][0] < c_bl and c_bl < c_ssb and c_ssb < p_ssb:
+            return -1
     return 0
 
 
